@@ -7,12 +7,14 @@
       "outputs": ["dist/**"]
     },
     "init": {
-      "cache": false
+      "cache": false,
+      "env": ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD"]
     },
     "dev": {
       "dependsOn": ["^init"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD"]
     }
   }
 }
