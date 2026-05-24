@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Container, Paper, Typography } from "@mui/material";
 import InductionList from "../components/InductionList";
 import InductionRecords from "../components/InductionRecords";
@@ -13,13 +13,19 @@ export default function Dashboard() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState<InductionRecord["status"] | "">("");
 
+  // Prevents saving during the reset-to-defaults + preference-load phase when
+  // switching inductions. Set false on induction change, true once prefs are fetched.
+  const prefsLoaded = useRef(false);
+
   const handleSelectInduction = (induction: Induction) => {
+    prefsLoaded.current = false;
     setSelectedInduction(induction);
     setSortColumn("created_at");
     setSortDirection("desc");
     setStatusFilter("");
   };
 
+  // Load preferences whenever the selected induction changes
   useEffect(() => {
     if (!selectedInduction) return;
 
@@ -31,8 +37,26 @@ export default function Dashboard() {
         setSortDirection(pref.sort_direction);
         setStatusFilter(pref.status_filter ?? "");
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        prefsLoaded.current = true;
+      });
   }, [selectedInduction?.id]);
+
+  // Persist sort/filter whenever they change, but only after prefs have loaded
+  useEffect(() => {
+    if (!selectedInduction || !prefsLoaded.current) return;
+
+    fetch(`${GATEWAY}/preferences/${selectedInduction.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sort_column: sortColumn,
+        sort_direction: sortDirection,
+        status_filter: statusFilter || null,
+      }),
+    }).catch(() => {});
+  }, [sortColumn, sortDirection, statusFilter]);
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
