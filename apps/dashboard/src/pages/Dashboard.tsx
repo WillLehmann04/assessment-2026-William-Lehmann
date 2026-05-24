@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Container, Paper, Typography } from "@mui/material";
 import InductionList from "../components/InductionList";
 import InductionRecords from "../components/InductionRecords";
-import { Induction, InductionRecord } from "../types";
+import { Induction, InductionRecord, UserPreference } from "../types";
 
+const GATEWAY = "http://localhost:8551";
 type SortColumn = "first_name" | "last_name" | "company_name" | "status" | "created_at";
 
 export default function Dashboard() {
@@ -18,6 +19,20 @@ export default function Dashboard() {
     setSortDirection("desc");
     setStatusFilter("");
   };
+
+  useEffect(() => {
+    if (!selectedInduction) return;
+
+    fetch(`${GATEWAY}/preferences/${selectedInduction.id}`)
+      .then((r) => r.json())
+      .then((pref: UserPreference | null) => {
+        if (!pref) return;
+        setSortColumn(pref.sort_column as SortColumn);
+        setSortDirection(pref.sort_direction);
+        setStatusFilter(pref.status_filter ?? "");
+      })
+      .catch(() => {});
+  }, [selectedInduction?.id]);
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
